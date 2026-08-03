@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CursorDeck</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #1b1f27;
+        --panel: #12161e;
+        --border: #2f3747;
+        --text: #e8eef8;
+        --muted: #93a0b5;
+        --ok: #34d399;
+        --err: #f87171;
+        --accent: #38bdf8;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 12px;
+        font: 12px/1.45 "Segoe UI", system-ui, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+      h1 { margin: 0 0 2px; font-size: 14px; }
+      h2 {
+        margin: 14px 0 8px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        border-top: 1px solid var(--border);
+        padding-top: 10px;
+      }
+      .sub { margin: 0 0 10px; color: var(--muted); font-size: 11px; }
+      label { display: block; margin: 8px 0 4px; color: var(--muted); }
+      input, select {
+        width: 100%;
+        padding: 7px 9px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+      }
+      input[type="color"] {
+        padding: 2px;
+        height: 34px;
+        cursor: pointer;
+      }
+      input[type="range"] { padding: 0; }
+      input[type="checkbox"] { width: auto; margin-right: 8px; vertical-align: middle; }
+      .check { display: flex; align-items: center; margin-top: 10px; color: var(--text); }
+      .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .row { display: flex; gap: 8px; margin-top: 10px; }
+      button {
+        flex: 1;
+        border: 1px solid var(--border);
+        background: #273042;
+        color: var(--text);
+        border-radius: 6px;
+        padding: 8px 10px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button.primary { background: var(--accent); border-color: #0ea5e9; color: #082f49; }
+      button:disabled { opacity: 0.55; cursor: default; }
+      .status {
+        margin-top: 10px;
+        padding: 9px;
+        border-radius: 8px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+      }
+      .dot {
+        display: inline-block;
+        width: 8px; height: 8px; border-radius: 50%;
+        margin-right: 6px; background: var(--muted); vertical-align: middle;
+      }
+      .status.ok .dot { background: var(--ok); }
+      .status.err .dot { background: var(--err); }
+      .hint { margin-top: 8px; color: var(--muted); font-size: 10px; }
+      code { color: #c4e8ff; }
+      #appearancePanel { display: none; }
+      #appearancePanel.show { display: block; }
+      #wallPanel { display: none; }
+      #wallPanel.show { display: block; }
+      #tileFields { display: none; }
+      #tileFields.show { display: block; }
+      .speed-val { float: right; color: var(--text); }
+    </style>
+  </head>
+  <body>
+    <h1>CursorDeck</h1>
+    <p class="sub">Bridge musí běžet (<code>start.bat</code> / tray).</p>
+
+    <label for="bridgeUrl">Bridge URL</label>
+    <input id="bridgeUrl" type="url" spellcheck="false" value="http://127.0.0.1:3847" />
+
+    <div class="row">
+      <button type="button" class="primary" id="saveGlobalBtn">Uložit URL</button>
+      <button type="button" id="testBtn">Test</button>
+    </div>
+
+    <div id="appearancePanel">
+      <h2>Vzhled této klávesy</h2>
+      <p class="sub" id="artKeyHint">Úpravy platí hned (rychlost, rotace, titulek). Barva / ikona / motion = regenerace art.</p>
+
+      <label for="titleOverride">Titulek na klávese</label>
+      <input id="titleOverride" type="text" maxlength="24" placeholder="např. AGENT" />
+
+      <div class="grid2">
+        <div>
+          <label for="accentColor">Barva (art)</label>
+          <input id="accentColor" type="color" value="#38BDF8" />
+        </div>
+        <div>
+          <label for="motion">Motion (art)</label>
+          <select id="motion">
+            <option value="breathe">Breathe</option>
+            <option value="spin">Spin</option>
+            <option value="orbit">Orbit</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="iconName">Ikona Lucide (art)</label>
+      <input id="iconName" type="text" spellcheck="false" placeholder="např. bot, sparkles, zap" />
+
+      <label for="labelText">Label v art (max 12)</label>
+      <input id="labelText" type="text" maxlength="12" placeholder="AGENT" />
+
+      <label for="speed">Rychlost animace <span class="speed-val" id="speedVal">1.0×</span></label>
+      <input id="speed" type="range" min="0.25" max="4" step="0.25" value="1" />
+
+      <label for="frameOffset">Fáze / „rotace“ start (0–15)</label>
+      <input id="frameOffset" type="range" min="0" max="15" step="1" value="0" />
+
+      <label class="check"><input id="reverse" type="checkbox" /> Animace pozpátku</label>
+      <label class="check"><input id="animate" type="checkbox" checked /> Idle animace zapnutá</label>
+
+      <div class="row">
+        <button type="button" class="primary" id="saveKeyBtn">Uložit vzhled</button>
+        <button type="button" id="resetKeyBtn">Reset</button>
+      </div>
+      <div class="row">
+        <button type="button" class="primary" id="applyArtBtn">Aplikovat art (barva/ikona)</button>
+      </div>
+      <p class="hint" id="artHint">
+        Titulek / rychlost / fáze platí hned. Barva, ikona, motion, label: klikni
+        <strong>Aplikovat art</strong> (nebo <code>apply-appearance.bat</code>), pak Quit Stream Deck → reopen.
+      </p>
+    </div>
+
+    <div id="wallPanel">
+      <h2>Multi-key wall</h2>
+      <p class="sub" id="wallHint">Auto: polož 4 (2×2) nebo 9 (3×3) stejných kláves do čtverce — spojí se samy.</p>
+
+      <label for="wallLayout">Layout</label>
+      <select id="wallLayout">
+        <option value="auto">Auto (doporučeno)</option>
+        <option value="1x1">1×1 (vždy jedna klávesa)</option>
+        <option value="2x2">2×2 ručně</option>
+        <option value="3x3">3×3 ručně</option>
+      </select>
+
+      <div id="tileFields">
+        <div class="grid2">
+          <div>
+            <label for="tileCol">Tile sloupec</label>
+            <select id="tileCol"></select>
+          </div>
+          <div>
+            <label for="tileRow">Tile řádek</label>
+            <select id="tileRow"></select>
+          </div>
+        </div>
+        <label for="wallId">Wall ID</label>
+        <input id="wallId" type="text" maxlength="16" value="A" spellcheck="false" />
+        <p class="hint">Ruční režim: stejný Wall ID + unikátní Tile. Auto Wall ID neřeš.</p>
+      </div>
+
+      <div class="row">
+        <button type="button" class="primary" id="saveWallBtn">Uložit wall</button>
+      </div>
+    </div>
+
+    <div class="status" id="statusBox">
+      <span class="dot"></span><span id="statusText">Připojuji Property Inspector…</span>
+    </div>
+    <p class="hint">Globální Bridge URL platí pro všechna tlačítka. Vzhled je per-klávesa.</p>
+
+    <script>
+      const DEFAULT_URL = "http://127.0.0.1:3847";
+      const UUID_TO_ART = {
+        "com.cursorstreamdeck.bridge.mode.agent": "agent",
+        "com.cursorstreamdeck.bridge.mode.ask": "ask",
+        "com.cursorstreamdeck.bridge.mode.plan": "plan",
+        "com.cursorstreamdeck.bridge.mode.debug": "debug",
+        "com.cursorstreamdeck.bridge.model.cycle": "model",
+        "com.cursorstreamdeck.bridge.chat.new": "new",
+        "com.cursorstreamdeck.bridge.chat.stop": "stop",
+        "com.cursorstreamdeck.bridge.chat.accept_all": "accept",
+        "com.cursorstreamdeck.bridge.chat.reject_all": "reject",
+        "com.cursorstreamdeck.bridge.chat.focus": "chatfocus",
+        "com.cursorstreamdeck.bridge.ide.focus": "focus",
+        "com.cursorstreamdeck.bridge.ide.sidepanel": "sidepanel",
+        "com.cursorstreamdeck.bridge.ide.terminal": "terminal",
+        "com.cursorstreamdeck.bridge.ide.command_palette": "palette",
+        "com.cursorstreamdeck.bridge.ide.save_all": "save",
+        "com.cursorstreamdeck.bridge.ide.explorer": "explorer",
+      };
+      const GRAPH_UUIDS = new Set([
+        "com.cursorstreamdeck.bridge.status",
+        "com.cursorstreamdeck.bridge.metrics",
+        "com.cursorstreamdeck.bridge.activity",
+        "com.cursorstreamdeck.bridge.workmix",
+        "com.cursorstreamdeck.bridge.pace",
+        "com.cursorstreamdeck.bridge.session",
+        "com.cursorstreamdeck.bridge.health",
+      ]);
+      const DEFAULTS = {
+        color: "#38BDF8",
+        icon: "",
+        label: "",
+        motion: "breathe",
+        titleOverride: "",
+        speed: 1,
+        reverse: false,
+        frameOffset: 0,
+        animate: true,
+      };
+      const WALL_DEFAULTS = { layout: "auto", tileCol: 0, tileRow: 0, wallId: "A" };
+
+      const el = (id) => document.getElementById(id);
+      const input = el("bridgeUrl");
+      const appearancePanel = el("appearancePanel");
+      const wallPanel = el("wallPanel");
+      const tileFields = el("tileFields");
+      const statusBox = el("statusBox");
+      const statusText = el("statusText");
+
+      let websocket = null;
+      let uuid = null;
+      let actionUuid = null;
+      let actionContext = null;
+      let artKey = null;
+      let isGraph = false;
+      let cachedSettings = {};
+      let saveTimer = null;
+      let wallSaveTimer = null;
+      let connected = false;
+      let suppressSave = false;
+
+      function normalizeUrl(value) {
+        return ((value || "").trim() || DEFAULT_URL).replace(/\/$/, "");
+      }
+
+      function isValidHttpUrl(value) {
+        try {
+          const u = new URL(value);
+          return u.protocol === "http:" || u.protocol === "https:";
+        } catch {
+          return false;
+        }
+      }
+
+      function setStatus(kind, text) {
+        statusBox.classList.remove("ok", "err");
+        if (kind) statusBox.classList.add(kind);
+        statusText.textContent = text;
+      }
+
+      function send(event, payload) {
+        if (!websocket || websocket.readyState !== WebSocket.OPEN || !uuid) return false;
+        const msg = { event, context: uuid };
+        if (payload !== undefined) msg.payload = payload;
+        websocket.send(JSON.stringify(msg));
+        return true;
+      }
+
+      /** Official SDK: setSettings needs action UUID + PI uuid as context. */
+      function sendActionSettings(settings) {
+        if (!websocket || websocket.readyState !== WebSocket.OPEN || !uuid || !actionUuid) return false;
+        websocket.send(JSON.stringify({
+          event: "setSettings",
+          action: actionUuid,
+          context: uuid,
+          payload: settings,
+        }));
+        // Direct plugin nudge (runtime title/speed/phase even if Stream Deck delays didReceiveSettings)
+        websocket.send(JSON.stringify({
+          event: "sendToPlugin",
+          action: actionUuid,
+          context: uuid,
+          payload: { type: "appearanceUpdate", settings },
+        }));
+        return true;
+      }
+
+      function layoutSize(layout) {
+        if (layout === "2x2") return 2;
+        if (layout === "3x3") return 3;
+        return 1;
+      }
+
+      function rebuildTileSelects(layout) {
+        const manual = layout === "2x2" || layout === "3x3";
+        if (!manual) {
+          tileFields.classList.remove("show");
+          return;
+        }
+        const n = layoutSize(layout);
+        const col = el("tileCol");
+        const row = el("tileRow");
+        const prevC = Number(col.value) || 0;
+        const prevR = Number(row.value) || 0;
+        col.innerHTML = "";
+        row.innerHTML = "";
+        for (let i = 0; i < n; i++) {
+          const oc = document.createElement("option");
+          oc.value = String(i);
+          oc.textContent = String(i);
+          col.appendChild(oc);
+          const or = document.createElement("option");
+          or.value = String(i);
+          or.textContent = String(i);
+          row.appendChild(or);
+        }
+        col.value = String(Math.min(prevC, n - 1));
+        row.value = String(Math.min(prevR, n - 1));
+        tileFields.classList.add("show");
+      }
+
+      function readAppearanceFromForm() {
+        const speed = Number(el("speed").value) || 1;
+        el("speedVal").textContent = speed.toFixed(2).replace(/\.?0+$/, "") + "×";
+        return {
+          color: el("accentColor").value.toUpperCase(),
+          icon: el("iconName").value.trim() || undefined,
+          label: el("labelText").value.trim() || undefined,
+          motion: el("motion").value,
+          titleOverride: el("titleOverride").value,
+          speed,
+          reverse: el("reverse").checked,
+          frameOffset: Number(el("frameOffset").value) || 0,
+          animate: el("animate").checked,
+        };
+      }
+
+      function readWallFromForm() {
+        const layout = el("wallLayout").value;
+        return {
+          layout,
+          tileCol: Number(el("tileCol").value) || 0,
+          tileRow: Number(el("tileRow").value) || 0,
+          wallId: (el("wallId").value || "A").trim().slice(0, 16) || "A",
+        };
+      }
+
+      function fillAppearanceForm(settings) {
+        suppressSave = true;
+        try {
+          const s = { ...DEFAULTS, ...(settings || {}) };
+          el("accentColor").value = s.color && /^#[0-9A-Fa-f]{6}$/i.test(s.color) ? s.color : DEFAULTS.color;
+          el("iconName").value = s.icon || "";
+          el("labelText").value = s.label || "";
+          el("motion").value = ["breathe", "spin", "orbit"].includes(s.motion) ? s.motion : "breathe";
+          el("titleOverride").value = s.titleOverride || "";
+          el("speed").value = String(s.speed ?? 1);
+          el("speedVal").textContent = Number(el("speed").value).toFixed(2).replace(/\.?0+$/, "") + "×";
+          el("frameOffset").value = String(s.frameOffset ?? 0);
+          el("reverse").checked = Boolean(s.reverse);
+          el("animate").checked = s.animate !== false;
+        } finally {
+          setTimeout(() => { suppressSave = false; }, 0);
+        }
+      }
+
+      function fillWallForm(settings) {
+        suppressSave = true;
+        try {
+          const s = { ...WALL_DEFAULTS, ...(settings || {}) };
+          const layout = ["auto", "1x1", "2x2", "3x3"].includes(s.layout) ? s.layout : "auto";
+          el("wallLayout").value = layout;
+          rebuildTileSelects(layout);
+          el("tileCol").value = String(s.tileCol ?? 0);
+          el("tileRow").value = String(s.tileRow ?? 0);
+          el("wallId").value = s.wallId || "A";
+        } finally {
+          setTimeout(() => { suppressSave = false; }, 0);
+        }
+      }
+
+      function saveGlobal() {
+        if (!connected) {
+          setStatus("err", "Property Inspector ještě není připojený");
+          return false;
+        }
+        const bridgeUrl = normalizeUrl(input.value);
+        if (!isValidHttpUrl(bridgeUrl)) {
+          setStatus("err", "Neplatná URL");
+          return false;
+        }
+        input.value = bridgeUrl;
+        if (!send("setGlobalSettings", { bridgeUrl })) {
+          setStatus("err", "Nelze uložit — WebSocket není ready");
+          return false;
+        }
+        setStatus("ok", "URL uložena: " + bridgeUrl);
+        return true;
+      }
+
+      async function syncAppearanceToBridge(settings) {
+        if (!artKey) return { ok: false, error: "no artKey" };
+        const bridgeUrl = normalizeUrl(input.value);
+        try {
+          const res = await fetch(bridgeUrl + "/appearance/" + encodeURIComponent(artKey), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(settings),
+            signal: AbortSignal.timeout(3000),
+          });
+          if (!res.ok) {
+            const t = await res.text().catch(() => "");
+            return { ok: false, error: "HTTP " + res.status + " " + t };
+          }
+          return { ok: true };
+        } catch (err) {
+          return { ok: false, error: String(err && err.message ? err.message : err) };
+        }
+      }
+
+      async function loadAppearanceFromBridge() {
+        if (!artKey) return;
+        const bridgeUrl = normalizeUrl(input.value);
+        try {
+          const res = await fetch(bridgeUrl + "/appearance", {
+            method: "GET",
+            signal: AbortSignal.timeout(2500),
+          });
+          if (!res.ok) return;
+          const body = await res.json();
+          const fromFile = body?.actions?.[artKey];
+          if (fromFile && typeof fromFile === "object") {
+            cachedSettings = { ...cachedSettings, ...fromFile };
+            fillAppearanceForm(cachedSettings);
+            setStatus("ok", "Vzhled načten z appearance.json (" + artKey + ")");
+          }
+        } catch {
+          /* bridge optional */
+        }
+      }
+
+      async function saveKeyAppearance() {
+        if (!artKey) {
+          setStatus("err", "Tato akce nemá přizpůsobitelný art");
+          return;
+        }
+        if (!actionUuid || !uuid) {
+          setStatus("err", "Property Inspector není připojený ke klávese");
+          return;
+        }
+        const settings = { ...cachedSettings, ...readAppearanceFromForm() };
+        cachedSettings = settings;
+        if (!sendActionSettings(settings)) {
+          setStatus("err", "Nelze uložit vzhled (WebSocket)");
+          return;
+        }
+        const sync = await syncAppearanceToBridge(settings);
+        if (sync.ok) {
+          setStatus("ok", "Vzhled uložen (" + artKey + "). Pro barvu/ikonu: Aplikovat art.");
+        } else {
+          setStatus("err", "Uloženo do Stream Deck, ale bridge/appearance.json: " + (sync.error || "fail") + " — spusť start.bat");
+        }
+      }
+
+      async function applyArtNow() {
+        await saveKeyAppearance();
+        const bridgeUrl = normalizeUrl(input.value);
+        setStatus("", "Generuji art z appearance.json… (pár sekund)");
+        el("applyArtBtn").disabled = true;
+        try {
+          const res = await fetch(bridgeUrl + "/appearance/apply-art", {
+            method: "POST",
+            signal: AbortSignal.timeout(180000),
+          });
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok || !body.ok) {
+            setStatus("err", body.error || ("Apply art failed HTTP " + res.status));
+            return;
+          }
+          setStatus("ok", "Art hotový. Quit Stream Deck (tray) a znovu otevři.");
+        } catch (err) {
+          setStatus("err", "Apply art: " + (err && err.message ? err.message : err) + " — nebo spusť apply-appearance.bat");
+        } finally {
+          el("applyArtBtn").disabled = false;
+        }
+      }
+
+      async function saveWallSettings() {
+        if (!isGraph) {
+          setStatus("err", "Wall nastavení jen u grafů");
+          return;
+        }
+        if (!actionUuid || !uuid) {
+          setStatus("err", "Property Inspector není připojený");
+          return;
+        }
+        const settings = { ...cachedSettings, ...readWallFromForm() };
+        cachedSettings = settings;
+        if (!sendActionSettings(settings)) {
+          setStatus("err", "Nelze uložit wall");
+          return;
+        }
+        setStatus("ok", "Wall " + settings.layout + " / " + settings.tileCol + "," + settings.tileRow + " / ID " + settings.wallId);
+      }
+
+      async function resetKeyAppearance() {
+        fillAppearanceForm(DEFAULTS);
+        await saveKeyAppearance();
+      }
+
+      async function testBridge() {
+        const bridgeUrl = normalizeUrl(input.value);
+        if (!isValidHttpUrl(bridgeUrl)) {
+          setStatus("err", "Neplatná URL");
+          return;
+        }
+        setStatus("", "Testuji " + bridgeUrl + "…");
+        el("testBtn").disabled = true;
+        try {
+          const res = await fetch(bridgeUrl + "/health", { method: "GET", signal: AbortSignal.timeout(2000) });
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const body = await res.json();
+          if (body && body.ok) setStatus("ok", "Bridge online ✓ (port " + (body.port ?? "?") + ")");
+          else setStatus("err", "Bridge odpověděl ok=false");
+        } catch {
+          setStatus("err", "Bridge nedostupný — spusť start.bat");
+        } finally {
+          el("testBtn").disabled = false;
+        }
+      }
+
+      function scheduleKeySave() {
+        if (suppressSave) return;
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => void saveKeyAppearance(), 400);
+      }
+
+      function scheduleWallSave() {
+        if (suppressSave) return;
+        clearTimeout(wallSaveTimer);
+        wallSaveTimer = setTimeout(() => void saveWallSettings(), 300);
+      }
+
+      el("saveGlobalBtn").addEventListener("click", () => saveGlobal());
+      el("testBtn").addEventListener("click", () => void testBridge());
+      el("saveKeyBtn").addEventListener("click", () => void saveKeyAppearance());
+      el("resetKeyBtn").addEventListener("click", () => void resetKeyAppearance());
+      el("applyArtBtn").addEventListener("click", () => void applyArtNow());
+      el("saveWallBtn").addEventListener("click", () => void saveWallSettings());
+      input.addEventListener("change", () => saveGlobal());
+      input.addEventListener("blur", () => saveGlobal());
+
+      el("wallLayout").addEventListener("change", () => {
+        rebuildTileSelects(el("wallLayout").value);
+        scheduleWallSave();
+      });
+      ["tileCol", "tileRow", "wallId"].forEach((id) => {
+        el(id).addEventListener("change", () => scheduleWallSave());
+        el(id).addEventListener("input", () => scheduleWallSave());
+      });
+
+      ["titleOverride", "accentColor", "motion", "iconName", "labelText", "speed", "frameOffset", "reverse", "animate"].forEach((id) => {
+        const node = el(id);
+        node.addEventListener("input", () => {
+          if (id === "speed") {
+            el("speedVal").textContent = Number(el("speed").value).toFixed(2).replace(/\.?0+$/, "") + "×";
+          }
+          scheduleKeySave();
+        });
+        node.addEventListener("change", () => scheduleKeySave());
+      });
+
+      window.connectElgatoStreamDeckSocket = function (port, inUuid, registerEvent, _info, actionInfo) {
+        uuid = inUuid;
+        let parsedAction = null;
+        try {
+          parsedAction = typeof actionInfo === "string" ? JSON.parse(actionInfo) : actionInfo;
+        } catch {
+          parsedAction = null;
+        }
+        actionContext = parsedAction?.context || null;
+        actionUuid = parsedAction?.action || null;
+        artKey = UUID_TO_ART[actionUuid] || null;
+        isGraph = GRAPH_UUIDS.has(actionUuid);
+        cachedSettings = { ...(parsedAction?.payload?.settings || {}) };
+
+        if (artKey) {
+          appearancePanel.classList.add("show");
+          el("artKeyHint").textContent =
+            "Klávesa: " + artKey + " — titulek / rychlost / fáze / reverse platí hned po uložení. Barva, ikona, motion, label → Aplikovat art.";
+          fillAppearanceForm(cachedSettings);
+        } else {
+          appearancePanel.classList.remove("show");
+        }
+
+        if (isGraph) {
+          wallPanel.classList.add("show");
+          fillWallForm(cachedSettings);
+        } else {
+          wallPanel.classList.remove("show");
+        }
+
+        websocket = new WebSocket("ws://127.0.0.1:" + port);
+        websocket.onopen = function () {
+          connected = true;
+          websocket.send(JSON.stringify({ event: registerEvent, uuid }));
+          send("getGlobalSettings");
+          if (actionUuid) {
+            websocket.send(JSON.stringify({
+              event: "getSettings",
+              action: actionUuid,
+              context: uuid,
+            }));
+          } else {
+            send("getSettings");
+          }
+          setStatus("", "Načítám nastavení…");
+          setTimeout(() => void testBridge(), 400);
+          setTimeout(() => void loadAppearanceFromBridge(), 600);
+        };
+        websocket.onmessage = function (evt) {
+          let data;
+          try { data = JSON.parse(evt.data); } catch { return; }
+          if (data.event === "didReceiveGlobalSettings") {
+            const bridgeUrl = normalizeUrl(data.payload?.settings?.bridgeUrl);
+            input.value = bridgeUrl;
+            setStatus("ok", "Načteno: " + bridgeUrl);
+          }
+          if (data.event === "didReceiveSettings") {
+            cachedSettings = { ...(data.payload?.settings || {}) };
+            if (artKey) fillAppearanceForm(cachedSettings);
+            if (isGraph) fillWallForm(cachedSettings);
+            setStatus("ok", "Nastavení klávesy načteno");
+          }
+        };
+        websocket.onclose = function () {
+          connected = false;
+          setStatus("err", "Property Inspector odpojen");
+        };
+        websocket.onerror = function () {
+          setStatus("err", "WebSocket chyba");
+        };
+      };
+    </script>
+  </body>
+</html>

@@ -1,0 +1,209 @@
+{
+  "Name": "CursorDeck",
+  "Version": "0.9.1",
+  "Author": "CursorDeck",
+  "UUID": "com.cursorstreamdeck.bridge",
+  "Description": "CursorDeck — auto multi-key walls, live status, graphs, customizable neon keys.",
+  "Icon": "imgs/plugin",
+  "Category": "CursorDeck",
+  "CategoryIcon": "imgs/category",
+  "OS": [
+    { "Platform": "windows", "MinimumVersion": "10" },
+    { "Platform": "mac", "MinimumVersion": "12" }
+  ],
+  "Software": {
+    "MinimumVersion": "6.5"
+  },
+  "SDKVersion": 2,
+  "CodePath": "bin/plugin.js",
+  "PropertyInspectorPath": "ui/settings.html",
+  "Nodejs": {
+    "Version": "20"
+  },
+  "Actions": [
+    {
+      "Name": "Agent Mode",
+      "UUID": "com.cursorstreamdeck.bridge.mode.agent",
+      "Icon": "imgs/actions/agent",
+      "Tooltip": "Switch Cursor to Agent mode",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/agent" }]
+    },
+    {
+      "Name": "Ask Mode",
+      "UUID": "com.cursorstreamdeck.bridge.mode.ask",
+      "Icon": "imgs/actions/ask",
+      "Tooltip": "Switch Cursor to Ask mode",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/ask" }]
+    },
+    {
+      "Name": "Plan Mode",
+      "UUID": "com.cursorstreamdeck.bridge.mode.plan",
+      "Icon": "imgs/actions/plan",
+      "Tooltip": "Switch Cursor to Plan mode",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/plan" }]
+    },
+    {
+      "Name": "Debug Mode",
+      "UUID": "com.cursorstreamdeck.bridge.mode.debug",
+      "Icon": "imgs/actions/debug",
+      "Tooltip": "Switch Cursor to Debug mode",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/debug" }]
+    },
+    {
+      "Name": "Cycle Model",
+      "UUID": "com.cursorstreamdeck.bridge.model.cycle",
+      "Icon": "imgs/actions/model",
+      "Tooltip": "Cycle Cursor AI model",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/model" }]
+    },
+    {
+      "Name": "New Chat",
+      "UUID": "com.cursorstreamdeck.bridge.chat.new",
+      "Icon": "imgs/actions/new",
+      "Tooltip": "New Composer chat",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/new" }]
+    },
+    {
+      "Name": "Focus Chat",
+      "UUID": "com.cursorstreamdeck.bridge.chat.focus",
+      "Icon": "imgs/actions/chatfocus",
+      "Tooltip": "Focus Composer / AI chat",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/chatfocus" }]
+    },
+    {
+      "Name": "Stop Agent",
+      "UUID": "com.cursorstreamdeck.bridge.chat.stop",
+      "Icon": "imgs/actions/stop",
+      "Tooltip": "Stop current agent generation",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/stop" }]
+    },
+    {
+      "Name": "Accept All",
+      "UUID": "com.cursorstreamdeck.bridge.chat.accept_all",
+      "Icon": "imgs/actions/accept",
+      "Tooltip": "Accept all suggested changes",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/accept" }]
+    },
+    {
+      "Name": "Reject All",
+      "UUID": "com.cursorstreamdeck.bridge.chat.reject_all",
+      "Icon": "imgs/actions/reject",
+      "Tooltip": "Reject all suggested changes",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/reject" }]
+    },
+    {
+      "Name": "Focus Cursor",
+      "UUID": "com.cursorstreamdeck.bridge.ide.focus",
+      "Icon": "imgs/actions/focus",
+      "Tooltip": "Focus Cursor window",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/focus" }]
+    },
+    {
+      "Name": "Sidepanel",
+      "UUID": "com.cursorstreamdeck.bridge.ide.sidepanel",
+      "Icon": "imgs/actions/sidepanel",
+      "Tooltip": "Toggle AI sidepanel",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/sidepanel" }]
+    },
+    {
+      "Name": "Terminal",
+      "UUID": "com.cursorstreamdeck.bridge.ide.terminal",
+      "Icon": "imgs/actions/terminal",
+      "Tooltip": "Toggle integrated terminal",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/terminal" }]
+    },
+    {
+      "Name": "Command Palette",
+      "UUID": "com.cursorstreamdeck.bridge.ide.command_palette",
+      "Icon": "imgs/actions/palette",
+      "Tooltip": "Open command palette",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/palette" }]
+    },
+    {
+      "Name": "Save All",
+      "UUID": "com.cursorstreamdeck.bridge.ide.save_all",
+      "Icon": "imgs/actions/save",
+      "Tooltip": "Save all dirty editors",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/save" }]
+    },
+    {
+      "Name": "Explorer",
+      "UUID": "com.cursorstreamdeck.bridge.ide.explorer",
+      "Icon": "imgs/actions/explorer",
+      "Tooltip": "Show file explorer",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/explorer" }]
+    },
+    {
+      "Name": "Live Status",
+      "UUID": "com.cursorstreamdeck.bridge.status",
+      "Icon": "imgs/actions/live-idle",
+      "Tooltip": "Live agent lifecycle title + animated art",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/live-idle", "Title": "IDLE" }]
+    },
+    {
+      "Name": "Session Metrics",
+      "UUID": "com.cursorstreamdeck.bridge.metrics",
+      "Icon": "imgs/actions/metrics",
+      "Tooltip": "Tools / edits / thoughts / subagents bars",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/metrics" }]
+    },
+    {
+      "Name": "Activity Graph",
+      "UUID": "com.cursorstreamdeck.bridge.activity",
+      "Icon": "imgs/actions/activity",
+      "Tooltip": "5-minute activity area chart",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/activity" }]
+    },
+    {
+      "Name": "Work Mix",
+      "UUID": "com.cursorstreamdeck.bridge.workmix",
+      "Icon": "imgs/actions/workmix",
+      "Tooltip": "Donut work mix: tools / edits / thoughts / other",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/workmix" }]
+    },
+    {
+      "Name": "Pace",
+      "UUID": "com.cursorstreamdeck.bridge.pace",
+      "Icon": "imgs/actions/pace",
+      "Tooltip": "Activity pace over ~10 minutes",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/pace" }]
+    },
+    {
+      "Name": "Session Timer",
+      "UUID": "com.cursorstreamdeck.bridge.session",
+      "Icon": "imgs/actions/session",
+      "Tooltip": "Elapsed session ring",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/session" }]
+    },
+    {
+      "Name": "Health",
+      "UUID": "com.cursorstreamdeck.bridge.health",
+      "Icon": "imgs/actions/health",
+      "Tooltip": "Cursor / hooks / keybindings health",
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "imgs/actions/health" }]
+    }
+  ]
+}

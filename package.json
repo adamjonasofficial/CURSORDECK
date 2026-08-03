@@ -1,0 +1,21 @@
+{
+  "name": "cursordeck",
+  "private": true,
+  "version": "0.9.1",
+  "description": "CursorDeck — Stream Deck + tray control for Cursor IDE (auto multi-key walls, live status, analytics)",
+  "license": "MIT",
+  "scripts": {
+    "dev": "pnpm --filter @csd/shared build && pnpm -r --parallel --filter @csd/bridge --filter @csd/web dev",
+    "build": "pnpm --filter @csd/shared build && pnpm -r --filter @csd/bridge --filter @csd/web --filter @csd/streamdeck-plugin build",
+    "setup:cursor": "pnpm --filter @csd/shared build && pnpm --filter @csd/setup start",
+    "bridge": "pnpm --filter @csd/bridge dev",
+    "bridge:start": "pnpm --filter @csd/shared build && pnpm --filter @csd/bridge build && pnpm --filter @csd/bridge start",
+    "web": "pnpm --filter @csd/web dev",
+    "plugin:build": "pnpm --filter @csd/shared build && pnpm --filter @csd/streamdeck-plugin build",
+    "start:tray": "powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ./scripts/tray-host.ps1"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

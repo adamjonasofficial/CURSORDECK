@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "actions": {
+    "agent": {
+      "color": "#38BDF8",
+      "icon": "bot",
+      "label": "AGENT",
+      "motion": "orbit",
+      "titleOverride": "AGENT",
+      "speed": 1,
+      "reverse": false,
+      "frameOffset": 0,
+      "animate": true
+    },
+    "ask": {
+      "color": "#F472B6",
+      "icon": "sparkles",
+      "label": "ASK",
+      "motion": "breathe",
+      "speed": 1.5
+    }
+  }
+}

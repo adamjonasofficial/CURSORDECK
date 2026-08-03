@@ -1,0 +1,52 @@
+[
+  {
+    "key": "ctrl+alt+shift+1",
+    "command": "composerMode.agent",
+    "csdMarker": "csd:mode.agent"
+  },
+  {
+    "key": "ctrl+alt+shift+2",
+    "command": "composerMode.ask",
+    "csdMarker": "csd:mode.ask"
+  },
+  {
+    "key": "ctrl+alt+shift+3",
+    "command": "composerMode.plan",
+    "csdMarker": "csd:mode.plan"
+  },
+  {
+    "key": "ctrl+alt+shift+4",
+    "command": "composerMode.debug",
+    "csdMarker": "csd:mode.debug"
+  },
+  {
+    "key": "ctrl+alt+shift+5",
+    "command": "composer.cycleModel",
+    "csdMarker": "csd:model.cycle"
+  },
+  {
+    "key": "ctrl+alt+shift+n",
+    "command": "composer.createNewComposerTab",
+    "csdMarker": "csd:chat.new"
+  },
+  {
+    "key": "ctrl+alt+shift+backspace",
+    "command": "composer.cancelComposer",
+    "csdMarker": "csd:chat.stop"
+  },
+  {
+    "key": "ctrl+alt+shift+enter",
+    "command": "composer.acceptComposer",
+    "csdMarker": "csd:chat.accept_all"
+  },
+  {
+    "key": "ctrl+alt+shift+delete",
+    "command": "composer.rejectComposer",
+    "csdMarker": "csd:chat.reject_all"
+  },
+  {
+    "key": "ctrl+alt+shift+i",
+    "command": "workbench.action.toggleAuxiliaryBar",
+    "csdMarker": "csd:ide.sidepanel"
+  }
+]

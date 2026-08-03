@@ -1,0 +1,43 @@
+node_modules/
+dist/
+apps/web/dist/
+apps/bridge/dist/
+packages/*/dist/
+.turbo/
+logs/
+*.log
+.DS_Store
+Thumbs.db
+Desktop.ini
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+.cursor-streamdeck/
+*.local
+
+# Installer build
+dist/
+tools/innosetup/
+
+# Stream Deck plugin build artifacts / generated art
+apps/streamdeck-plugin/.softlink
+apps/streamdeck-plugin/bin/
+apps/streamdeck-plugin/com.cursorstreamdeck.bridge.sdPlugin/bin/
+apps/streamdeck-plugin/com.cursorstreamdeck.bridge.sdPlugin/logs/
+apps/streamdeck-plugin/com.cursorstreamdeck.bridge.sdPlugin/imgs/idle/
+apps/streamdeck-plugin/com.cursorstreamdeck.bridge.sdPlugin/imgs/press/
+apps/streamdeck-plugin/com.cursorstreamdeck.bridge.sdPlugin/imgs/live/
+apps/streamdeck-plugin/com.cursorstreamdeck.bridge.sdPlugin/imgs/spinner/
+apps/streamdeck-plugin/com.cursorstreamdeck.bridge.sdPlugin/imgs/pulse/
+apps/streamdeck-plugin/com.cursorstreamdeck.bridge.sdPlugin/imgs/actions/
+apps/streamdeck-plugin/com.cursorstreamdeck.bridge.sdPlugin/imgs/plugin.png
+apps/streamdeck-plugin/com.cursorstreamdeck.bridge.sdPlugin/imgs/plugin@2x.png
+apps/streamdeck-plugin/com.cursorstreamdeck.bridge.sdPlugin/imgs/category.png
+apps/streamdeck-plugin/com.cursorstreamdeck.bridge.sdPlugin/imgs/category@2x.png
+
+# IDE / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
