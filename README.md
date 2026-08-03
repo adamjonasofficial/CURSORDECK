@@ -11,7 +11,7 @@
 ## Download (Windows Setup)
 
 1. Install [Node.js 20+ LTS](https://nodejs.org/) (required)
-2. Download **`CursorDeck-Setup-*.exe`** from the latest [GitHub Release](../../releases/latest)
+2. Download **`CursorDeck-Setup-*.exe`** from the latest [GitHub Release](https://github.com/adamjonasofficial/CURSORDECK/releases/latest)
 3. Run the Setup (no admin) → installs to `%LOCALAPPDATA%\CursorDeck`
 4. Optional wizard tasks: Start with Windows, Cursor hooks, Stream Deck plugin
 5. Quit Stream Deck and reopen if you installed the plugin
