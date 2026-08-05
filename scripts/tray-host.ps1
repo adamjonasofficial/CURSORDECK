@@ -77,7 +77,7 @@ function Ensure-Built {
   $bridgeSrc = Join-Path $Root "apps\bridge\src"
 
   # Installer payload ships prebuilt dist and may omit TypeScript sources.
-  # Prefer running what we have — only rebuild when sources exist and output is missing.
+  # Prefer running what we have - only rebuild when sources exist and output is missing.
   $bridgeReady = Test-Path $BridgeEntry
   $sharedReady = Test-Path $sharedEntry
   $webReady = Test-Path $WebIndex
@@ -169,37 +169,73 @@ function Start-Bridge {
   throw "Bridge did not become healthy at $HealthUrl"
 }
 
+function Test-BridgeHttp {
+  try {
+    $r = Invoke-RestMethod -Uri $HealthUrl -TimeoutSec 3
+    return [bool]$r.ok
+  } catch {
+    return $false
+  }
+}
+
+function Test-BridgeProcessAlive {
+  if ($script:BridgeProcess -and -not $script:BridgeProcess.HasExited) {
+    return $true
+  }
+  if (Test-Path $BridgePidFile) {
+    try {
+      $pidText = (Get-Content $BridgePidFile -Raw).Trim()
+      $pidNum = [int]$pidText
+      $p = Get-Process -Id $pidNum -ErrorAction SilentlyContinue
+      if ($p) { return $true }
+    } catch {}
+  }
+  return $false
+}
+
 function Update-TrayStatus {
   if (-not $script:Notify) { return }
-  try {
-    $r = Invoke-RestMethod -Uri $HealthUrl -TimeoutSec 1
-    $script:Healthy = [bool]$r.ok
-  } catch {
-    $script:Healthy = $false
-  }
 
-  if ($script:Healthy) {
+  $httpOk = Test-BridgeHttp
+  $procOk = Test-BridgeProcessAlive
+  $script:Healthy = $httpOk
+
+  if ($httpOk) {
     $script:HealthFailStreak = 0
     $script:Notify.Text = "CursorDeck - OK"
-  } else {
-    $script:HealthFailStreak++
-    $script:Notify.Text = "CursorDeck - OFFLINE"
-    # Bridge often wedges under connection storms — auto-restart after a few misses
-    $sinceRestart = (Get-Date) - $script:LastBridgeRestartAt
-    if ($script:HealthFailStreak -ge 3 -and $sinceRestart.TotalSeconds -ge 20) {
-      Write-Log "Bridge unhealthy x$($script:HealthFailStreak) - restarting"
-      $script:LastBridgeRestartAt = Get-Date
-      $script:HealthFailStreak = 0
-      try {
-        Start-Bridge
-        Show-Balloon "CursorDeck" "Bridge restarted (was offline)." Info
-      } catch {
-        Write-Log "Auto-restart failed: $_"
-        Show-Balloon "CursorDeck" "Bridge restart failed: $_" Error
-      }
-    }
+    return
   }
-  # Keep brand icon — do not replace with SystemIcons
+
+  $script:HealthFailStreak++
+  $script:Notify.Text = "CursorDeck - OFFLINE"
+
+  # Soft watchdog: ignore brief blips. Only restart if process is dead, or HTTP fails for a long stretch.
+  $sinceRestart = (Get-Date) - $script:LastBridgeRestartAt
+  $needRestart = $false
+  $reason = ""
+
+  if (-not $procOk -and $script:HealthFailStreak -ge 2 -and $sinceRestart.TotalSeconds -ge 60) {
+    $needRestart = $true
+    $reason = "process gone"
+  } elseif ($script:HealthFailStreak -ge 15 -and $sinceRestart.TotalSeconds -ge 180) {
+    # ~30s of fails at 2s tick, and at most once per 3 minutes
+    $needRestart = $true
+    $reason = "http unhealthy x$($script:HealthFailStreak)"
+  }
+
+  if (-not $needRestart) { return }
+
+  Write-Log "Bridge restart ($reason)"
+  $script:LastBridgeRestartAt = Get-Date
+  $script:HealthFailStreak = 0
+  try {
+    Start-Bridge
+    # Quiet recovery - no balloon spam (tooltip already shows status)
+    Write-Log "Bridge restarted OK"
+  } catch {
+    Write-Log "Auto-restart failed: $_"
+    Show-Balloon "CursorDeck" "Bridge offline - restart failed. Open logs." Error
+  }
 }
 
 function Show-Balloon([string]$Title, [string]$Text, [System.Windows.Forms.ToolTipIcon]$Icon = "Info") {
