@@ -1,7 +1,7 @@
 {
   "name": "cursordeck",
   "private": true,
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "CursorDeck — Stream Deck + tray control for Cursor IDE (auto multi-key walls, live status, analytics)",
   "license": "MIT",
   "scripts": {

@@ -6,6 +6,7 @@ packages/*/dist/
 .turbo/
 logs/
 *.log
+exelogs/
 .DS_Store
 Thumbs.db
 Desktop.ini

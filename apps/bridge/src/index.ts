@@ -262,6 +262,13 @@ const server = serve(
   },
 );
 
+// Avoid CloseWait pile-up when Stream Deck aborts many /state polls
+const httpServer = server as unknown as Server;
+httpServer.keepAliveTimeout = 5_000;
+httpServer.headersTimeout = 10_000;
+httpServer.requestTimeout = 15_000;
+httpServer.maxConnections = 64;
+
 const wss = new WebSocketServer({ server: server as unknown as Server, path: "/ws" });
 
 function send(ws: WebSocket, msg: WsServerMessage) {

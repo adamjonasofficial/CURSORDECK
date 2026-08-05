@@ -102,16 +102,38 @@ async function postAction(actionId: ActionId): Promise<void> {
   }
 }
 
+/** Deduped / short-TTL cache — many walls must not open parallel HTTP sockets. */
+let stateCache: {
+  at: number;
+  value?: BridgeStateSnapshot;
+  inflight?: Promise<BridgeStateSnapshot>;
+} = { at: 0 };
+
+const STATE_TTL_MS = 500;
+
 async function fetchState(): Promise<BridgeStateSnapshot> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 2500);
-  try {
-    const res = await fetch(`${bridgeUrl()}/state`, { signal: controller.signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return (await res.json()) as BridgeStateSnapshot;
-  } finally {
-    clearTimeout(timer);
+  const now = Date.now();
+  if (stateCache.value && now - stateCache.at < STATE_TTL_MS) {
+    return stateCache.value;
   }
+  if (stateCache.inflight) return stateCache.inflight;
+
+  stateCache.inflight = (async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    try {
+      const res = await fetch(`${bridgeUrl()}/state`, { signal: controller.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const value = (await res.json()) as BridgeStateSnapshot;
+      stateCache = { at: Date.now(), value };
+      return value;
+    } finally {
+      clearTimeout(timer);
+      stateCache.inflight = undefined;
+    }
+  })();
+
+  return stateCache.inflight;
 }
 
 function pngDataUrl(filePath: string): string | null {

@@ -25,7 +25,6 @@ export type TileCoords = { column: number; row: number };
 export type GraphTileEntry = {
   actionId: string;
   kind: GraphKind;
-  /** User setting: auto | forced layout */
   settingLayout: LayoutSetting;
   layout: WallLayout;
   cols: number;
@@ -48,7 +47,6 @@ type KindConfig = {
   renderTiles: GraphRenderTiles;
   titleFor1x1: GraphTitleFn;
   intervalMs: number;
-  /** When true, empty title on 1x1 is handled by custom painter (status PNG path). */
   skipDefaultPaint?: boolean;
 };
 
@@ -82,7 +80,6 @@ export function detectFilledSquares(
         origins.push({ col: c, row: r });
       }
     }
-    // Stable: scan top-left first
     origins.sort((a, b) => a.row - b.row || a.col - b.col);
 
     for (const origin of origins) {
@@ -115,7 +112,6 @@ export function detectFilledSquares(
     }
   }
 
-  // leftovers → 1x1
   for (const cell of remaining.values()) {
     result.set(cell.actionId, {
       cols: 1,
@@ -129,16 +125,19 @@ export function detectFilledSquares(
   return result;
 }
 
+const GLOBAL_POLL_MS = 1500;
+const OFF_AFTER_FAILURES = 3;
+
 /**
  * Coordinates multi-key graph walls with auto square detection.
+ * One shared poll + one bridge fetch per tick (avoids connection storms).
  */
 export class WallHub {
   private entries = new Map<string, GraphTileEntry>();
-  private timers = new Map<GraphKind, ReturnType<typeof setInterval>>();
+  private globalTimer: ReturnType<typeof setInterval> | undefined;
   private configs = new Map<GraphKind, KindConfig>();
   private fetchState: () => Promise<BridgeStateSnapshot>;
   private log: (line: string) => void;
-  /** Optional per-kind paint override (e.g. status 1x1 PNG frames). */
   private customPainters = new Map<
     GraphKind,
     (args: {
@@ -148,6 +147,10 @@ export class WallHub {
       rows: number;
     }) => Promise<void>
   >();
+  private failStreak = 0;
+  private lastFailLogAt = 0;
+  private refreshInFlight = false;
+  private pendingRefresh = false;
 
   constructor(fetchState: () => Promise<BridgeStateSnapshot>, log: (line: string) => void) {
     this.fetchState = fetchState;
@@ -202,7 +205,7 @@ export class WallHub {
     }
 
     this.entries.set(actionId, entry);
-    this.ensureTimer(kind);
+    this.ensureTimer();
     this.recompute(kind);
   }
 
@@ -220,17 +223,14 @@ export class WallHub {
     const prev = this.entries.get(actionId);
     this.entries.delete(actionId);
     if (!prev) return;
-    const still = [...this.entries.values()].some((e) => e.kind === prev.kind);
-    if (!still) {
-      const t = this.timers.get(prev.kind);
-      if (t) clearInterval(t);
-      this.timers.delete(prev.kind);
+    if (this.entries.size === 0) {
+      if (this.globalTimer) clearInterval(this.globalTimer);
+      this.globalTimer = undefined;
     } else {
       this.recompute(prev.kind);
     }
   }
 
-  /** Entries for a kind (for status animation helpers). */
   entriesFor(kind: GraphKind): GraphTileEntry[] {
     return [...this.entries.values()].filter((e) => e.kind === kind);
   }
@@ -264,44 +264,84 @@ export class WallHub {
       e.wallId = hit.wallId;
     }
 
-    const groups = new Set(kindEntries.map((e) => groupKey(e)));
-    for (const g of groups) void this.refreshGroup(g);
+    // Debounced full refresh (register storms on profile load)
+    this.scheduleRefresh();
   }
 
-  /** Force refresh all groups of a kind (e.g. status animation tick). */
-  refreshKindPublic(kind: GraphKind) {
-    void this.refreshKind(kind);
+  refreshKindPublic(_kind: GraphKind) {
+    this.scheduleRefresh();
   }
 
-  private ensureTimer(kind: GraphKind) {
-    if (this.timers.has(kind)) return;
-    const cfg = this.configs.get(kind);
-    if (!cfg) return;
-    this.timers.set(
-      kind,
-      setInterval(() => {
-        void this.refreshKind(kind);
-      }, cfg.intervalMs),
-    );
+  private ensureTimer() {
+    if (this.globalTimer) return;
+    this.globalTimer = setInterval(() => {
+      this.scheduleRefresh();
+    }, GLOBAL_POLL_MS);
   }
 
-  private async refreshKind(kind: GraphKind) {
-    const groups = new Set<string>();
-    for (const e of this.entries.values()) {
-      if (e.kind === kind) groups.add(groupKey(e));
+  private scheduleRefresh() {
+    if (this.refreshInFlight) {
+      this.pendingRefresh = true;
+      return;
     }
-    for (const g of groups) await this.refreshGroup(g);
+    void this.refreshAll();
   }
 
-  private async refreshGroup(gkey: string) {
-    const members = [...this.entries.values()].filter((e) => groupKey(e) === gkey);
+  private async refreshAll() {
+    if (this.entries.size === 0) return;
+    this.refreshInFlight = true;
+    try {
+      let state: BridgeStateSnapshot;
+      try {
+        state = await this.fetchState();
+        this.failStreak = 0;
+      } catch (err) {
+        this.failStreak += 1;
+        const now = Date.now();
+        if (now - this.lastFailLogAt > 5000) {
+          this.lastFailLogAt = now;
+          this.log(`Wall poll failed (x${this.failStreak}): ${String(err)}`);
+        }
+        if (this.failStreak >= OFF_AFTER_FAILURES) {
+          await this.paintAllOff();
+        }
+        return;
+      }
+
+      const groups = new Map<string, GraphTileEntry[]>();
+      for (const e of this.entries.values()) {
+        const k = groupKey(e);
+        const list = groups.get(k) ?? [];
+        list.push(e);
+        groups.set(k, list);
+      }
+
+      for (const members of groups.values()) {
+        await this.paintGroup(members, state);
+      }
+    } finally {
+      this.refreshInFlight = false;
+      if (this.pendingRefresh) {
+        this.pendingRefresh = false;
+        this.scheduleRefresh();
+      }
+    }
+  }
+
+  private async paintAllOff() {
+    for (const member of this.entries.values()) {
+      const actionRef = streamDeck.actions.getActionById(member.actionId);
+      if (actionRef?.isKey()) await actionRef.setTitle("OFF");
+    }
+  }
+
+  private async paintGroup(members: GraphTileEntry[], state: BridgeStateSnapshot) {
     if (members.length === 0) return;
     const sample = members[0]!;
     const cfg = this.configs.get(sample.kind);
     if (!cfg) return;
 
     try {
-      const state = await this.fetchState();
       const custom = this.customPainters.get(sample.kind);
       if (custom) {
         await custom({ state, members, cols: sample.cols, rows: sample.rows });
@@ -324,10 +364,10 @@ export class WallHub {
         }
       }
     } catch (err) {
-      this.log(`Wall ${gkey} failed: ${String(err)}`);
-      for (const member of members) {
-        const actionRef = streamDeck.actions.getActionById(member.actionId);
-        if (actionRef?.isKey()) await actionRef.setTitle("OFF");
+      const now = Date.now();
+      if (now - this.lastFailLogAt > 5000) {
+        this.lastFailLogAt = now;
+        this.log(`Wall paint ${groupKey(sample)} failed: ${String(err)}`);
       }
     }
   }

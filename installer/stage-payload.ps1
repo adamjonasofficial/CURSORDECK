@@ -192,9 +192,15 @@ if (Test-Path $pkgPath) { Copy-Item -Force $pkgPath $pkgBak }
 } | ConvertTo-Json -Depth 5 | Set-Content -Path $pkgPath -Encoding UTF8
 Push-Location $pluginDir
 try {
-  & npm.cmd install --no-fund --no-audit 2>&1 | Out-Host
-  if ($LASTEXITCODE -ne 0) {
-    Write-Warning "npm install art deps failed - Apply art may not work from this payload"
+  $prevEap = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  & npm.cmd install --no-fund --no-audit
+  $npmCode = $LASTEXITCODE
+  $ErrorActionPreference = $prevEap
+  if ($npmCode -ne 0) {
+    Write-Warning "npm install art deps failed (exit $npmCode) - Apply art may not work from this payload"
+  } else {
+    Write-Host "  art deps ok (lucide-static + sharp)"
   }
 } finally {
   Pop-Location

@@ -42,7 +42,9 @@ if (-not $created) {
 
 $script:BridgeProcess = $null
 $script:Healthy = $false
+$script:HealthFailStreak = 0
 $script:Notify = $null
+$script:LastBridgeRestartAt = [datetime]::MinValue
 
 function Invoke-Pnpm([string[]]$PnpmArgs) {
   Write-Log ("pnpm " + ($PnpmArgs -join " "))
@@ -177,9 +179,25 @@ function Update-TrayStatus {
   }
 
   if ($script:Healthy) {
+    $script:HealthFailStreak = 0
     $script:Notify.Text = "CursorDeck - OK"
   } else {
+    $script:HealthFailStreak++
     $script:Notify.Text = "CursorDeck - OFFLINE"
+    # Bridge often wedges under connection storms — auto-restart after a few misses
+    $sinceRestart = (Get-Date) - $script:LastBridgeRestartAt
+    if ($script:HealthFailStreak -ge 3 -and $sinceRestart.TotalSeconds -ge 20) {
+      Write-Log "Bridge unhealthy x$($script:HealthFailStreak) - restarting"
+      $script:LastBridgeRestartAt = Get-Date
+      $script:HealthFailStreak = 0
+      try {
+        Start-Bridge
+        Show-Balloon "CursorDeck" "Bridge restarted (was offline)." Info
+      } catch {
+        Write-Log "Auto-restart failed: $_"
+        Show-Balloon "CursorDeck" "Bridge restart failed: $_" Error
+      }
+    }
   }
   # Keep brand icon — do not replace with SystemIcons
 }
